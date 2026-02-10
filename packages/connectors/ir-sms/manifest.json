@@ -7,8 +7,8 @@
   },
   "actions": [
     {
-      "name": "run",
-      "operation": "run"
+      "name": "send",
+      "operation": "send"
     }
   ]
 }

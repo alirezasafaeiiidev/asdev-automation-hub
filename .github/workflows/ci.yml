@@ -41,6 +41,8 @@ jobs:
         run: pnpm test
       - name: Build
         run: pnpm build
+      - name: Dependency audit
+        run: pnpm audit:deps
       - name: Prisma validate
         run: pnpm prisma:validate
       - name: Migration check

@@ -9,6 +9,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "build": "turbo run build",
+    "audit:deps": "pnpm audit --prod --audit-level=high",
     "prisma:validate": "DATABASE_URL=postgresql://asdev:asdev@localhost:5432/asdev_lap prisma validate --schema prisma/schema.prisma",
     "migrate:check": "node scripts/check-migrations.mjs",
     "ci": "pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm prisma:validate && pnpm migrate:check"

@@ -1,0 +1,62 @@
+version: '3.9'
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: asdev
+      POSTGRES_PASSWORD: asdev
+      POSTGRES_DB: asdev_lap
+    ports:
+      - '5432:5432'
+    volumes:
+      - asdev_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U asdev -d asdev_lap']
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      SECRET_KEY: local-secret-change-me
+      DATABASE_URL: postgresql://asdev:asdev@postgres:5432/asdev_lap
+    ports:
+      - '3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3000/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 6
+
+  runner:
+    build:
+      context: .
+      dockerfile: apps/runner/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://asdev:asdev@postgres:5432/asdev_lap
+      IR_SMS_API_KEY: ${IR_SMS_API_KEY:-}
+      IR_PAYMENT_MERCHANT_ID: ${IR_PAYMENT_MERCHANT_ID:-}
+      IR_PAYMENT_CALLBACK_URL: ${IR_PAYMENT_CALLBACK_URL:-https://localhost/payment/callback}
+    ports:
+      - '4000:4000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:4000/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 6
+
+volumes:
+  asdev_pgdata:

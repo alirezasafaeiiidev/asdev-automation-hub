@@ -12,3 +12,6 @@ CI gates:
 Suggested layers:
 - unit + integration (Phase 0)
 - E2E smoke (Phase 1)
+
+Current smoke coverage:
+- `apps/runner/tests/e2e.smoke.test.ts` validates end-to-end execution through `core.case`, `ir.payment`, and `ir.sms`.

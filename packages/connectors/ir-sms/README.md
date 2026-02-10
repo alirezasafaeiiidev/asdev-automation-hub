@@ -1,6 +1,8 @@
 # @asdev/connector-ir-sms
 
-Connector package for ir-sms.
+Kavenegar-first SMS connector for Iran market.
 
-- Includes manifest.json
-- Exposes runAction(ctx, input)
+- Operation: `send`
+- Input: `{ to, message, sender? }`
+- Output: `{ provider, messageId, to }`
+- Supports mock mode when API key is not configured.

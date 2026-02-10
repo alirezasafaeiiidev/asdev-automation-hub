@@ -48,6 +48,15 @@ importers:
 
   apps/runner:
     dependencies:
+      '@asdev/connector-core':
+        specifier: workspace:*
+        version: link:../../packages/connectors/core
+      '@asdev/connector-ir-payment':
+        specifier: workspace:*
+        version: link:../../packages/connectors/ir-payment
+      '@asdev/connector-ir-sms':
+        specifier: workspace:*
+        version: link:../../packages/connectors/ir-sms
       '@asdev/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk

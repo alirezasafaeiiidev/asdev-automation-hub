@@ -2,7 +2,7 @@ import { parseWorkflowDsl } from '@asdev/sdk';
 import { randomUUID } from 'node:crypto';
 import { InMemoryStore } from './repositories/inMemoryStore.js';
 import { SecretCipher } from './security/secretCipher.js';
-import { ActorContext, ConnectionRecord, RunRecord, WorkflowRecord } from './types.js';
+import { ActorContext, ConnectionRecord, RunRecord, StepRunRecord, WorkflowRecord } from './types.js';
 
 function assertRole(actor: ActorContext, allowed: ActorContext['role'][]): void {
   if (!allowed.includes(actor.role)) {
@@ -38,13 +38,69 @@ export class ControlPlaneService {
     return workflow;
   }
 
-  listRuns(actor: ActorContext): RunRecord[] {
+  setWorkflowActive(actor: ActorContext, workflowId: string, isActive: boolean): WorkflowRecord {
+    assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR']);
+    const workflow = this.mustWorkflow(workflowId, actor.workspaceId);
+    workflow.isActive = isActive;
+    this.audit(actor, 'workflow.set_active', 'Workflow', workflow.id);
+    return workflow;
+  }
+
+  listWorkflows(actor: ActorContext): WorkflowRecord[] {
     assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR', 'VIEWER']);
-    return Array.from(this.store.runs.values()).filter((run) => run.workspaceId === actor.workspaceId);
+    return Array.from(this.store.workflows.values()).filter((workflow) => workflow.workspaceId === actor.workspaceId);
+  }
+
+  listRuns(
+    actor: ActorContext,
+    filter?: { workflowId?: string; status?: RunRecord['status'] },
+  ): RunRecord[] {
+    assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR', 'VIEWER']);
+    return Array.from(this.store.runs.values()).filter((run) => {
+      if (run.workspaceId !== actor.workspaceId) {
+        return false;
+      }
+      if (filter?.workflowId && run.workflowId !== filter.workflowId) {
+        return false;
+      }
+      if (filter?.status && run.status !== filter.status) {
+        return false;
+      }
+      return true;
+    });
   }
 
   addRun(run: RunRecord): void {
     this.store.runs.set(run.id, run);
+  }
+
+  addStepLogs(runId: string, logs: StepRunRecord[]): void {
+    this.store.stepRuns.set(runId, logs);
+    const run = this.store.runs.get(runId);
+    if (run) {
+      run.updatedAt = new Date().toISOString();
+    }
+  }
+
+  getRunTimeline(actor: ActorContext, runId: string): { run: RunRecord; steps: StepRunRecord[] } {
+    assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR', 'VIEWER']);
+    const run = this.mustRun(runId, actor.workspaceId);
+    return { run, steps: this.store.stepRuns.get(runId) ?? [] };
+  }
+
+  retryRun(actor: ActorContext, runId: string): RunRecord {
+    assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR']);
+    const current = this.mustRun(runId, actor.workspaceId);
+    const retried: RunRecord = {
+      ...current,
+      id: randomUUID(),
+      status: 'PENDING',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.store.runs.set(retried.id, retried);
+    this.audit(actor, 'run.retry', 'Run', retried.id);
+    return retried;
   }
 
   createConnection(actor: ActorContext, input: { name: string; provider: string; secret: string }): ConnectionRecord {
@@ -72,6 +128,21 @@ export class ControlPlaneService {
       });
   }
 
+  testConnection(
+    actor: ActorContext,
+    connectionId: string,
+    tester?: (plainSecret: string, provider: string) => Promise<boolean>,
+  ): Promise<{ ok: boolean }> {
+    assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR']);
+    const connection = this.mustConnection(connectionId, actor.workspaceId);
+    const plain = this.cipher.decrypt(connection.encryptedSecret);
+    const runTest = tester ?? (async () => plain.length > 3);
+    return runTest(plain, connection.provider).then((ok) => {
+      this.audit(actor, 'connection.test', 'Connection', connectionId);
+      return { ok };
+    });
+  }
+
   listAuditLogs(actor: ActorContext) {
     assertRole(actor, ['OWNER', 'ADMIN']);
     return this.store.audits.filter((entry) => entry.workspaceId === actor.workspaceId);
@@ -95,5 +166,21 @@ export class ControlPlaneService {
       throw new Error('WORKFLOW_NOT_FOUND');
     }
     return workflow;
+  }
+
+  private mustRun(id: string, workspaceId: string): RunRecord {
+    const run = this.store.runs.get(id);
+    if (!run || run.workspaceId !== workspaceId) {
+      throw new Error('RUN_NOT_FOUND');
+    }
+    return run;
+  }
+
+  private mustConnection(id: string, workspaceId: string): ConnectionRecord {
+    const conn = this.store.connections.get(id);
+    if (!conn || conn.workspaceId !== workspaceId) {
+      throw new Error('CONNECTION_NOT_FOUND');
+    }
+    return conn;
   }
 }

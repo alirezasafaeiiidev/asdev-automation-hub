@@ -18,7 +18,11 @@ export type RunRecord = {
   id: string;
   workspaceId: string;
   workflowId: string;
+  workflowVersion: number;
   status: 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
+  trigger: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type ConnectionRecord = {
@@ -36,5 +40,17 @@ export type AuditLogRecord = {
   action: string;
   entityType: string;
   entityId: string;
+  createdAt: string;
+};
+
+export type StepRunRecord = {
+  id: string;
+  runId: string;
+  workspaceId: string;
+  stepId: string;
+  attempt: number;
+  status: 'SUCCEEDED' | 'FAILED';
+  output?: Record<string, unknown>;
+  errorMessage?: string;
   createdAt: string;
 };

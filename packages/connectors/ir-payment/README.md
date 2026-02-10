@@ -1,6 +1,8 @@
 # @asdev/connector-ir-payment
 
-Connector package for ir-payment.
+Zarinpal-first payment connector for invoice creation.
 
-- Includes manifest.json
-- Exposes runAction(ctx, input)
+- Operation: `createInvoice`
+- Input: `{ amount, description?, meta? }`
+- Output: `{ provider, invoiceId, payUrl, fee }`
+- Supports mock mode when merchant ID is not configured.

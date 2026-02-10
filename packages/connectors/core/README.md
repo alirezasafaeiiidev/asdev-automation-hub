@@ -1,6 +1,7 @@
 # @asdev/connector-core
 
-Connector package for core.
+Core domain connector primitives.
 
-- Includes manifest.json
-- Exposes runAction(ctx, input)
+- Operation: `create` on `core.case`
+- Input: arbitrary case payload
+- Output: case object with deterministic id

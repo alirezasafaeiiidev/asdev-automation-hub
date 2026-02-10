@@ -7,10 +7,17 @@
 Schema + runner + queue + core connectors + admin API.
 
 ## Phase 1 — Revenue Pack
-Iran connectors (SMS/Payment) + templates + minimal admin UI + docker-compose.
+Status: Completed on 2026-02-10.  
+Delivered: Kavenegar/Zarinpal connectors, template installer, admin UI v0, self-host compose stack, E2E smoke.
 
 ## Phase 2 — Productization
-RBAC hardening, exports, backups, hardening.
+- Workspace auth integration
+- Persistent control-plane storage
+- Retry controls in UI
+- Backup/export runbooks
+- Security hardening pass (headers, rate limits, dependency audit gating)
 
 ## Phase 3 — Extensibility
-SDK docs, conditional steps, template updates.
+- SDK docs + public connector authoring guide
+- Conditional branches (`if`) and guarded retries
+- Template versioning and update policies
