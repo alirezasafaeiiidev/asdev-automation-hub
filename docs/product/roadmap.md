@@ -14,6 +14,7 @@ Delivered: Kavenegar/Zarinpal connectors, template installer, admin UI v0, self-
 - Workspace auth integration
 - Persistent control-plane storage
 - Retry controls in UI
+- Template preflight/install flow in admin APIs
 - Backup/export runbooks
 - Security hardening pass (headers, rate limits, dependency audit gating)
 

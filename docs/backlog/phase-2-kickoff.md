@@ -16,8 +16,8 @@ Move from Phase 1 prototype completion to a production-ready self-hosted platfor
 ## Track B - Operator Experience
 
 - [x] P2-B1 Admin runs screen filters and retry controls
-- [ ] P2-B2 Connection diagnostics UX by provider
-- [ ] P2-B3 Template install wizard with preflight checklist
+- [x] P2-B2 Connection diagnostics UX by provider
+- [x] P2-B3 Template install wizard with preflight checklist
 
 ## Definition of Done
 
@@ -45,3 +45,13 @@ Move from Phase 1 prototype completion to a production-ready self-hosted platfor
 - Added secrets rotation runbook at `docs/runbooks/secrets-rotation.md`.
 - Linked security baseline and self-host runbook to the rotation process.
 - Kept dependency audit gate active in CI (`.github/workflows/ci.yml` -> `Dependency audit` step).
+
+## PR-4 Notes
+
+- Added operator endpoints for template install flow:
+  - `GET /admin/templates`
+  - `POST /admin/templates/preflight`
+  - `POST /admin/templates/install`
+- Added provider diagnostics endpoint:
+  - `POST /admin/connections/test`
+- Added endpoint integration coverage in `apps/web/tests/server-templates.test.ts`.

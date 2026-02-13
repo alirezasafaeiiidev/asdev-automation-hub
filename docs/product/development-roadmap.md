@@ -40,4 +40,4 @@ Definition of done:
 - PR-1: Persistence + migrations + repository interfaces
 - PR-2: Admin controls and run timeline APIs
 - PR-3: Security and audit enhancements
-- PR-4: DSL conditional execution + SDK docs
+- PR-4: Connection diagnostics + template preflight/install APIs

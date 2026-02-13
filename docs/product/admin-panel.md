@@ -17,6 +17,10 @@
   - `GET /admin/runs/timeline?runId=<run-id>`
   - `POST /admin/runs/retry`
   - `GET /admin/connections`
+  - `POST /admin/connections/test`
+  - `GET /admin/templates`
+  - `POST /admin/templates/preflight`
+  - `POST /admin/templates/install`
 - Service capabilities:
   - Workflow activation toggles
   - Run retry + timeline retrieval
@@ -82,6 +86,94 @@ Response (`202`):
   "workflowId": "wf_1",
   "workflowVersion": 1,
   "status": "PENDING"
+}
+```
+
+### Test a connection
+
+Request:
+
+```http
+POST /admin/connections/test
+Content-Type: application/json
+Authorization: Bearer <ADMIN_API_TOKEN>
+x-asdev-user-id: admin-1
+x-asdev-workspace-id: w1
+x-asdev-role: ADMIN
+
+{"connectionId":"7fa42169-a4f5-4b93-bf97-8dbce4dbf657"}
+```
+
+Response (`200`):
+
+```json
+{
+  "ok": true
+}
+```
+
+### Template preflight
+
+Request:
+
+```http
+POST /admin/templates/preflight
+Content-Type: application/json
+Authorization: Bearer <ADMIN_API_TOKEN>
+x-asdev-user-id: admin-1
+x-asdev-workspace-id: w1
+x-asdev-role: ADMIN
+
+{"templateId":"service-booking-reminder"}
+```
+
+Response (`200`):
+
+```json
+{
+  "templateId": "service-booking-reminder",
+  "templateName": "Service Booking + Reminder",
+  "requirements": [
+    { "connector": "ir.payment", "connectionId": "conn_payment" },
+    { "connector": "ir.sms", "connectionId": "conn_sms" }
+  ],
+  "availableProviders": ["ir.payment", "ir.sms"],
+  "missingConnectors": [],
+  "ready": true
+}
+```
+
+### Install template
+
+Request:
+
+```http
+POST /admin/templates/install
+Content-Type: application/json
+Authorization: Bearer <ADMIN_API_TOKEN>
+x-asdev-user-id: admin-1
+x-asdev-workspace-id: w1
+x-asdev-role: ADMIN
+
+{"templateId":"service-booking-reminder"}
+```
+
+Response (`201`):
+
+```json
+{
+  "id": "c722258d-bb70-4e09-a3db-060f2d6194ec",
+  "workspaceId": "w1",
+  "name": "Service Booking + Reminder",
+  "activeVersion": 1,
+  "versions": [
+    {
+      "version": 1,
+      "dslJson": {
+        "name": "Booking Reminder"
+      }
+    }
+  ]
 }
 ```
 
