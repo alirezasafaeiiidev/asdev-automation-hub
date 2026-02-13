@@ -41,3 +41,11 @@ Definition of done:
 - PR-2: Admin controls and run timeline APIs
 - PR-3: Security and audit enhancements
 - PR-4: Connection diagnostics + template preflight/install APIs
+
+## Remaining Execution Tasks
+- Phase 2 hardening:
+  - `#11` Auth + workspace persistence integration
+  - https://github.com/alirezasafaeiiidev/asdev-automation-hub/issues/11
+- Phase 2 QA gate:
+  - `#10` E2E smoke for template install + full run
+  - https://github.com/alirezasafaeiiidev/asdev-automation-hub/issues/10

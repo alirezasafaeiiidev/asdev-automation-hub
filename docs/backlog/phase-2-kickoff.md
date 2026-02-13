@@ -8,7 +8,7 @@ Move from Phase 1 prototype completion to a production-ready self-hosted platfor
 
 ## Track A - Platform Hardening
 
-- [ ] P2-A1 Auth + workspace persistence
+- [ ] P2-A1 Auth + workspace persistence (tracked: issue #11)
 - [x] P2-A2 Postgres-backed control-plane repositories
 - [x] P2-A3 Run timeline API backed by DB
 - [x] P2-A4 Security tightening (secrets rotation playbook + dependency audit gate)
@@ -26,7 +26,7 @@ Move from Phase 1 prototype completion to a production-ready self-hosted platfor
 - [x] `pnpm test` passes
 - [x] `pnpm build` passes
 - [x] Admin APIs documented with request/response examples
-- [ ] E2E smoke validates template installation and a full run
+- [ ] E2E smoke validates template installation and a full run (tracked: issue #10)
 
 ## PR-1 Notes
 
@@ -55,3 +55,10 @@ Move from Phase 1 prototype completion to a production-ready self-hosted platfor
 - Added provider diagnostics endpoint:
   - `POST /admin/connections/test`
 - Added endpoint integration coverage in `apps/web/tests/server-templates.test.ts`.
+
+## Open Tasks (Current)
+
+- `#11` P2-A1 Auth + workspace persistence integration:
+  - https://github.com/alirezasafaeiiidev/asdev-automation-hub/issues/11
+- `#10` P2-QA E2E smoke for template install + full run:
+  - https://github.com/alirezasafaeiiidev/asdev-automation-hub/issues/10
