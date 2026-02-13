@@ -1,0 +1,7 @@
+# Default owner for this repository.
+* @alirezasafaeiiidev
+
+# Sensitive areas.
+/.github/ @alirezasafaeiiidev
+/apps/web/src/security/ @alirezasafaeiiidev
+/prisma/ @alirezasafaeiiidev
