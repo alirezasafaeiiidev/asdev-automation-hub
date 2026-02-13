@@ -8,6 +8,7 @@ import { getConnectionsScreen, getRunsScreen, getWorkflowsScreen } from './admin
 import { renderAdminPage } from './admin/page.js';
 import { authorizeAdminRequest, requireEnv } from './auth.js';
 import { RunRecord } from './types.js';
+import { getTemplatePreflight, installTemplate, listTemplates } from './templates/gallery.js';
 
 export type ServerContext = {
   service: ControlPlaneService;
@@ -143,6 +144,111 @@ async function handleRequest(context: ServerContext, req: IncomingMessage, res: 
     if (url.pathname === '/admin/connections' && req.method === 'GET') {
       res.writeHead(200, { 'content-type': 'application/json' });
       res.end(JSON.stringify(await getConnectionsScreen(context.service, authResult.actor)));
+      return;
+    }
+
+    if (url.pathname === '/admin/connections/test' && req.method === 'POST') {
+      let body: Record<string, unknown>;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'INVALID_JSON' }));
+        return;
+      }
+      const connectionId = body.connectionId;
+      if (typeof connectionId !== 'string' || connectionId.length === 0) {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'CONNECTION_ID_REQUIRED' }));
+        return;
+      }
+      try {
+        const result = await context.service.testConnection(authResult.actor, connectionId);
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(result));
+      } catch (error) {
+        if (error instanceof Error && error.message === 'CONNECTION_NOT_FOUND') {
+          res.writeHead(404, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ error: 'CONNECTION_NOT_FOUND' }));
+          return;
+        }
+        throw error;
+      }
+      return;
+    }
+
+    if (url.pathname === '/admin/templates' && req.method === 'GET') {
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(
+        JSON.stringify(
+          listTemplates().map((item) => ({
+            id: item.id,
+            name: item.name,
+            category: item.category,
+            description: item.description,
+          })),
+        ),
+      );
+      return;
+    }
+
+    if (url.pathname === '/admin/templates/preflight' && req.method === 'POST') {
+      let body: Record<string, unknown>;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'INVALID_JSON' }));
+        return;
+      }
+      const templateId = body.templateId;
+      if (typeof templateId !== 'string' || templateId.length === 0) {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'TEMPLATE_ID_REQUIRED' }));
+        return;
+      }
+      try {
+        const preflight = await getTemplatePreflight(context.service, authResult.actor, templateId);
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(preflight));
+      } catch (error) {
+        if (error instanceof Error && error.message === 'TEMPLATE_NOT_FOUND') {
+          res.writeHead(404, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ error: 'TEMPLATE_NOT_FOUND' }));
+          return;
+        }
+        throw error;
+      }
+      return;
+    }
+
+    if (url.pathname === '/admin/templates/install' && req.method === 'POST') {
+      let body: Record<string, unknown>;
+      try {
+        body = await readJsonBody(req);
+      } catch {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'INVALID_JSON' }));
+        return;
+      }
+      const templateId = body.templateId;
+      if (typeof templateId !== 'string' || templateId.length === 0) {
+        res.writeHead(400, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ error: 'TEMPLATE_ID_REQUIRED' }));
+        return;
+      }
+      try {
+        const workflow = await installTemplate(context.service, authResult.actor, templateId);
+        res.writeHead(201, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(workflow));
+      } catch (error) {
+        if (error instanceof Error && error.message === 'TEMPLATE_NOT_FOUND') {
+          res.writeHead(404, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ error: 'TEMPLATE_NOT_FOUND' }));
+          return;
+        }
+        throw error;
+      }
       return;
     }
   }

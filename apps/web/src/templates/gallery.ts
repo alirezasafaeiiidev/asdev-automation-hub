@@ -9,6 +9,11 @@ export type WorkflowTemplate = {
   dslJson: unknown;
 };
 
+export type TemplateConnectionRequirement = {
+  connector: string;
+  connectionId: string;
+};
+
 const templates: WorkflowTemplate[] = [
   {
     id: 'service-booking-reminder',
@@ -105,8 +110,59 @@ export function listTemplates(): WorkflowTemplate[] {
   return templates;
 }
 
+export function getTemplate(templateId: string): WorkflowTemplate | null {
+  return templates.find((item) => item.id === templateId) ?? null;
+}
+
+export function getTemplateConnectionRequirements(templateId: string): TemplateConnectionRequirement[] {
+  const template = getTemplate(templateId);
+  if (!template) {
+    throw new Error('TEMPLATE_NOT_FOUND');
+  }
+  const dsl = template.dslJson as { steps?: Array<Record<string, unknown>> };
+  const seen = new Set<string>();
+  const requirements: TemplateConnectionRequirement[] = [];
+  for (const step of dsl.steps ?? []) {
+    const connector = step.connector;
+    const connectionId = step.connectionId;
+    if (typeof connector !== 'string' || typeof connectionId !== 'string') {
+      continue;
+    }
+    const key = `${connector}:${connectionId}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    requirements.push({ connector, connectionId });
+  }
+  return requirements;
+}
+
+export async function getTemplatePreflight(service: ControlPlaneService, actor: ActorContext, templateId: string) {
+  const template = getTemplate(templateId);
+  if (!template) {
+    throw new Error('TEMPLATE_NOT_FOUND');
+  }
+  const requirements = getTemplateConnectionRequirements(templateId);
+  const availableConnections = await service.listConnections(actor);
+  const availableProviders = new Set(availableConnections.map((connection) => connection.provider));
+  const missingConnectors = requirements
+    .map((item) => item.connector)
+    .filter((connector, index, all) => all.indexOf(connector) === index)
+    .filter((connector) => !availableProviders.has(connector));
+
+  return {
+    templateId: template.id,
+    templateName: template.name,
+    requirements,
+    availableProviders: Array.from(availableProviders.values()),
+    missingConnectors,
+    ready: missingConnectors.length === 0,
+  };
+}
+
 export async function installTemplate(service: ControlPlaneService, actor: ActorContext, templateId: string) {
-  const template = templates.find((item) => item.id === templateId);
+  const template = getTemplate(templateId);
   if (!template) {
     throw new Error('TEMPLATE_NOT_FOUND');
   }
