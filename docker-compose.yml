@@ -23,7 +23,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
-      SECRET_KEY: local-secret-change-me
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY is required}
+      ADMIN_API_TOKEN: ${ADMIN_API_TOKEN:?ADMIN_API_TOKEN is required}
       DATABASE_URL: postgresql://asdev:asdev@postgres:5432/asdev_lap
     ports:
       - '3000:3000'

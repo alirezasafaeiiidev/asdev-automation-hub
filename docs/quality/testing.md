@@ -8,6 +8,8 @@ CI gates:
 - lint/format
 - unit tests (engine/queue/interpolation)
 - build
+- migration validation (`prisma validate` + non-empty migration files)
+- dependency audit (`pnpm audit --prod --audit-level=high`)
 
 Suggested layers:
 - unit + integration (Phase 0)
@@ -15,3 +17,7 @@ Suggested layers:
 
 Current smoke coverage:
 - `apps/runner/tests/e2e.smoke.test.ts` validates end-to-end execution through `core.case`, `ir.payment`, and `ir.sms`.
+
+Additional baseline checks:
+- Queue claim semantics must prevent re-claiming already claimed jobs without `ack`/`fail`.
+- Prisma schema and SQL migrations must stay aligned for queue and relational constraints.

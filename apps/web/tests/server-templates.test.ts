@@ -59,9 +59,11 @@ describe('admin template endpoints', () => {
       ready: boolean;
       missingConnectors: string[];
       requirements: Array<{ connector: string }>;
+      missingRequirements: Array<{ connector: string; connectionId: string }>;
     };
     expect(payload.ready).toBe(false);
     expect(payload.requirements.length).toBeGreaterThan(0);
+    expect(payload.missingRequirements.length).toBeGreaterThan(0);
     expect(payload.missingConnectors).toContain('ir.payment');
     expect(payload.missingConnectors).toContain('ir.sms');
   });
@@ -95,8 +97,8 @@ describe('admin template endpoints', () => {
         secret: `${provider}-secret-value`,
       });
 
-    await createConnection('payment', 'ir.payment');
-    await createConnection('sms', 'ir.sms');
+    await createConnection('conn_payment', 'ir.payment');
+    await createConnection('conn_sms', 'ir.sms');
 
     const preflightResponse = await fetch(`${baseUrl}/admin/templates/preflight`, {
       method: 'POST',
@@ -106,9 +108,14 @@ describe('admin template endpoints', () => {
       },
       body: JSON.stringify({ templateId: 'service-booking-reminder' }),
     });
-    const preflight = (await preflightResponse.json()) as { ready: boolean; missingConnectors: string[] };
+    const preflight = (await preflightResponse.json()) as {
+      ready: boolean;
+      missingConnectors: string[];
+      missingRequirements: Array<{ connector: string; connectionId: string }>;
+    };
     expect(preflight.ready).toBe(true);
     expect(preflight.missingConnectors).toHaveLength(0);
+    expect(preflight.missingRequirements).toHaveLength(0);
 
     const installResponse = await fetch(`${baseUrl}/admin/templates/install`, {
       method: 'POST',
@@ -143,5 +150,42 @@ describe('admin template endpoints', () => {
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ ok: true });
+  });
+
+  it('marks preflight as not ready when provider exists but connection id mapping is missing', async () => {
+    await context.service.createConnection(actor, {
+      name: 'payment',
+      provider: 'ir.payment',
+      secret: 'payment-secret-value',
+    });
+    await context.service.createConnection(actor, {
+      name: 'sms',
+      provider: 'ir.sms',
+      secret: 'sms-secret-value',
+    });
+
+    const response = await fetch(`${baseUrl}/admin/templates/preflight`, {
+      method: 'POST',
+      headers: {
+        ...ACTOR_HEADERS,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ templateId: 'service-booking-reminder' }),
+    });
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      ready: boolean;
+      missingConnectors: string[];
+      missingRequirements: Array<{ connector: string; connectionId: string }>;
+    };
+    expect(payload.ready).toBe(false);
+    expect(payload.missingConnectors).toEqual([]);
+    expect(payload.missingRequirements).toEqual(
+      expect.arrayContaining([
+        { connector: 'ir.payment', connectionId: 'conn_payment' },
+        { connector: 'ir.sms', connectionId: 'conn_sms' },
+      ]),
+    );
   });
 });

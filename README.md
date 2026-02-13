@@ -42,6 +42,18 @@ pnpm test
 ```
 
 ## Self-host
+Create a `.env` file in repository root:
+
+```bash
+SECRET_KEY="<32+ char secret>"
+ADMIN_API_TOKEN="<strong-admin-token>"
+IR_SMS_API_KEY=""
+IR_PAYMENT_MERCHANT_ID=""
+IR_PAYMENT_CALLBACK_URL="https://localhost/payment/callback"
+```
+
+Then run:
+
 ```bash
 docker compose up --build
 ```

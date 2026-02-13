@@ -193,3 +193,19 @@ model Message {
   createdAt    DateTime   @default(now())
   workspace    Workspace  @relation(fields: [workspaceId], references: [id])
 }
+
+model QueueJob {
+  id           String    @id
+  runId        String    @map("run_id")
+  stepId       String    @map("step_id")
+  payload      Json
+  availableAt  DateTime  @map("available_at")
+  attempts     Int       @default(0)
+  maxAttempts  Int       @default(3) @map("max_attempts")
+  claimedAt    DateTime? @map("claimed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([availableAt], map: "queue_jobs_available_at_idx")
+  @@index([claimedAt], map: "queue_jobs_claimed_at_idx")
+  @@map("queue_jobs")
+}

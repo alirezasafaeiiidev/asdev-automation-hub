@@ -146,6 +146,14 @@ export async function getTemplatePreflight(service: ControlPlaneService, actor: 
   const requirements = getTemplateConnectionRequirements(templateId);
   const availableConnections = await service.listConnections(actor);
   const availableProviders = new Set(availableConnections.map((connection) => connection.provider));
+  const missingRequirements = requirements.filter(
+    (requirement) =>
+      !availableConnections.some(
+        (connection) =>
+          connection.provider === requirement.connector &&
+          (connection.id === requirement.connectionId || connection.name === requirement.connectionId),
+      ),
+  );
   const missingConnectors = requirements
     .map((item) => item.connector)
     .filter((connector, index, all) => all.indexOf(connector) === index)
@@ -155,9 +163,10 @@ export async function getTemplatePreflight(service: ControlPlaneService, actor: 
     templateId: template.id,
     templateName: template.name,
     requirements,
+    missingRequirements,
     availableProviders: Array.from(availableProviders.values()),
     missingConnectors,
-    ready: missingConnectors.length === 0,
+    ready: missingRequirements.length === 0,
   };
 }
 

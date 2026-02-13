@@ -12,6 +12,7 @@ Move from Phase 1 prototype completion to a production-ready self-hosted platfor
 - [x] P2-A2 Postgres-backed control-plane repositories
 - [x] P2-A3 Run timeline API backed by DB
 - [x] P2-A4 Security tightening (secrets rotation playbook + dependency audit gate)
+- [x] P2-A5 Relational integrity hardening (FK constraints + queue schema alignment)
 
 ## Track B - Operator Experience
 
@@ -55,6 +56,13 @@ Move from Phase 1 prototype completion to a production-ready self-hosted platfor
 - Added provider diagnostics endpoint:
   - `POST /admin/connections/test`
 - Added endpoint integration coverage in `apps/web/tests/server-templates.test.ts`.
+
+## PR-5 Notes
+
+- Added queue persistence schema migration (`0003_queue_jobs`) and aligned Prisma model.
+- Added relational constraints migration (`0004_relational_constraints`) for core entities.
+- Tightened template preflight checks to validate required `connectionId` mapping.
+- Fixed DSL interpolation for `{{step.output.path}}` while preserving `{{step.path}}` compatibility.
 
 ## Open Tasks (Current)
 

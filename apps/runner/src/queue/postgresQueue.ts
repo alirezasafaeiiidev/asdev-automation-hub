@@ -5,7 +5,7 @@ const CLAIM_SQL = `
 WITH next_job AS (
   SELECT id
   FROM queue_jobs
-  WHERE available_at <= NOW()
+  WHERE available_at <= NOW() AND claimed_at IS NULL
   ORDER BY available_at ASC
   FOR UPDATE SKIP LOCKED
   LIMIT 1
@@ -63,7 +63,10 @@ export class PostgresQueue implements QueuePort {
   }
 
   async fail(jobId: string, nextAvailableAt: Date): Promise<void> {
-    await this.pool.query('UPDATE queue_jobs SET attempts = attempts + 1, available_at = $2 WHERE id = $1', [jobId, nextAvailableAt]);
+    await this.pool.query('UPDATE queue_jobs SET attempts = attempts + 1, available_at = $2, claimed_at = NULL WHERE id = $1', [
+      jobId,
+      nextAvailableAt,
+    ]);
   }
 }
 

@@ -9,6 +9,10 @@
 - Connections: create/list/test connection
 - Audit logs: workflow/connection changes
 
+Role access for `/admin/*`:
+- Allowed: `OWNER`, `ADMIN`
+- Denied: `OPERATOR`, `VIEWER`
+
 ## Phase 1 implementation
 - Minimal dashboard page: `GET /`
 - JSON endpoints:
@@ -19,12 +23,13 @@
   - `GET /admin/connections`
   - `POST /admin/connections/test`
   - `GET /admin/templates`
-  - `POST /admin/templates/preflight`
-  - `POST /admin/templates/install`
+- `POST /admin/templates/preflight`
+- `POST /admin/templates/install`
 - Service capabilities:
   - Workflow activation toggles
   - Run retry + timeline retrieval
   - Connection test hook
+  - Template preflight validation for both provider and required `connectionId` mapping
 
 ## Request/Response Examples
 
@@ -137,9 +142,12 @@ Response (`200`):
     { "connector": "ir.payment", "connectionId": "conn_payment" },
     { "connector": "ir.sms", "connectionId": "conn_sms" }
   ],
+  "missingRequirements": [
+    { "connector": "ir.payment", "connectionId": "conn_payment" }
+  ],
   "availableProviders": ["ir.payment", "ir.sms"],
   "missingConnectors": [],
-  "ready": true
+  "ready": false
 }
 ```
 

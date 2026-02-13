@@ -15,7 +15,8 @@ describe('dsl parser', () => {
   it('resolves interpolation tokens', () => {
     const output = interpolateObject(
       {
-        text: '{{trigger.phone}} -> {{s1.id}} -> {{env.RUNTIME}}',
+        text: '{{trigger.phone}} -> {{s1.output.id}} -> {{env.RUNTIME}}',
+        legacy: '{{s1.id}}',
       },
       {
         trigger: { phone: '+989121234567' },
@@ -25,5 +26,23 @@ describe('dsl parser', () => {
     );
 
     expect(output.text).toBe('+989121234567 -> case_1 -> test');
+    expect(output.legacy).toBe('case_1');
+  });
+
+  it('preserves non-string types when value is a single token', () => {
+    const output = interpolateObject(
+      {
+        triggerPayload: '{{trigger}}',
+        stepOutput: '{{s1.output}}',
+      },
+      {
+        trigger: { phone: '+989121234567', items: [{ sku: 'A1', qty: 1 }] },
+        steps: { s1: { output: { id: 'case_1', ok: true } } },
+        env: {},
+      },
+    );
+
+    expect(output.triggerPayload).toEqual({ phone: '+989121234567', items: [{ sku: 'A1', qty: 1 }] });
+    expect(output.stepOutput).toEqual({ id: 'case_1', ok: true });
   });
 });

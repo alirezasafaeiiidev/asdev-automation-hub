@@ -4,6 +4,7 @@ import { executeWorkflow } from '../src/engine.js';
 describe('runner engine', () => {
   it('executes linear steps with interpolation and idempotency key', async () => {
     const calls: string[] = [];
+    const actionInputs: Array<Record<string, unknown>> = [];
     const result = await executeWorkflow({
       runId: 'run-1',
       trigger: { phone: '+989121234567' },
@@ -16,13 +17,14 @@ describe('runner engine', () => {
             id: 's2',
             connector: 'ir.sms',
             operation: 'send',
-            input: { to: '{{trigger.phone}}', ref: '{{s1.id}}' },
+            input: { to: '{{trigger.phone}}', ref: '{{s1.output.id}}' },
           },
         ],
       },
       connectorRuntime: {
         async runAction(input) {
           calls.push(input.idempotencyKey);
+          actionInputs.push(input.input);
           if (input.operation === 'create') return { output: { id: 'case-1' } };
           return { output: { delivered: true, to: input.input.to } };
         },
@@ -32,6 +34,7 @@ describe('runner engine', () => {
     expect(result.status).toBe('SUCCEEDED');
     expect(calls).toEqual(['run-1:s1', 'run-1:s2']);
     expect(result.logs).toHaveLength(2);
+    expect(actionInputs[1]?.ref).toBe('case-1');
   });
 
   it('retries then fails when attempts are exhausted', async () => {

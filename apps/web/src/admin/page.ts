@@ -38,8 +38,6 @@ export function renderAdminPage(): string {
           <select id="role">
             <option value="ADMIN">ADMIN</option>
             <option value="OWNER">OWNER</option>
-            <option value="OPERATOR">OPERATOR</option>
-            <option value="VIEWER">VIEWER</option>
           </select>
         </label>
       </div>
