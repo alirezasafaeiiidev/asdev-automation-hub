@@ -15,7 +15,7 @@ Move from Phase 1 prototype completion to a production-ready self-hosted platfor
 
 ## Track B - Operator Experience
 
-- [ ] P2-B1 Admin runs screen filters and retry controls
+- [x] P2-B1 Admin runs screen filters and retry controls
 - [ ] P2-B2 Connection diagnostics UX by provider
 - [ ] P2-B3 Template install wizard with preflight checklist
 
@@ -25,7 +25,7 @@ Move from Phase 1 prototype completion to a production-ready self-hosted platfor
 - [x] `pnpm typecheck` passes
 - [x] `pnpm test` passes
 - [x] `pnpm build` passes
-- [ ] Admin APIs documented with request/response examples
+- [x] Admin APIs documented with request/response examples
 - [ ] E2E smoke validates template installation and a full run
 
 ## PR-1 Notes
