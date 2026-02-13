@@ -14,6 +14,8 @@ pnpm ci
 
 ## Run Services
 ```bash
+export SECRET_KEY="<32+ char secret>"
+export ADMIN_API_TOKEN="<strong-admin-token>"
 pnpm --filter @asdev/web dev
 pnpm --filter @asdev/runner dev
 ```
@@ -24,6 +26,12 @@ Health checks:
 
 Admin dashboard:
 - `http://localhost:3000/`
+
+Admin API access for `/admin/*` requires:
+- `Authorization: Bearer $ADMIN_API_TOKEN` (or `x-admin-api-token`)
+- `x-asdev-user-id`
+- `x-asdev-workspace-id`
+- `x-asdev-role` (`ADMIN` or `OWNER`)
 
 ## Testing
 ```bash
