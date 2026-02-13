@@ -48,3 +48,9 @@ See `CONTRIBUTING.md`.
 
 ## License
 MIT
+
+## Merge Runbook
+See: `docs/merge-runbook.md`
+
+## Reviewer Rotation (CODEOWNERS)
+See: `docs/reviewer-rotation.md`
