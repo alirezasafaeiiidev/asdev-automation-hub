@@ -1,8 +1,8 @@
 import { ControlPlaneService } from '../service.js';
 import { ActorContext, RunRecord } from '../types.js';
 
-export function getWorkflowsScreen(service: ControlPlaneService, actor: ActorContext) {
-  const workflows = service.listWorkflows(actor);
+export async function getWorkflowsScreen(service: ControlPlaneService, actor: ActorContext) {
+  const workflows = await service.listWorkflows(actor);
   return workflows.map((workflow) => ({
     id: workflow.id,
     name: workflow.name,
@@ -12,12 +12,12 @@ export function getWorkflowsScreen(service: ControlPlaneService, actor: ActorCon
   }));
 }
 
-export function getRunsScreen(
+export async function getRunsScreen(
   service: ControlPlaneService,
   actor: ActorContext,
   filter?: { status?: RunRecord['status']; workflowId?: string },
 ) {
-  const runs = service.listRuns(actor, filter).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
+  const runs = (await service.listRuns(actor, filter)).sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
   return runs.map((run) => ({
     id: run.id,
     workflowId: run.workflowId,
@@ -28,8 +28,9 @@ export function getRunsScreen(
   }));
 }
 
-export function getConnectionsScreen(service: ControlPlaneService, actor: ActorContext) {
-  return service.listConnections(actor).map((connection) => ({
+export async function getConnectionsScreen(service: ControlPlaneService, actor: ActorContext) {
+  const connections = await service.listConnections(actor);
+  return connections.map((connection) => ({
     id: connection.id,
     provider: connection.provider,
     name: connection.name,
@@ -37,8 +38,9 @@ export function getConnectionsScreen(service: ControlPlaneService, actor: ActorC
   }));
 }
 
-export function getAuditLogsScreen(service: ControlPlaneService, actor: ActorContext) {
-  return service.listAuditLogs(actor).map((item) => ({
+export async function getAuditLogsScreen(service: ControlPlaneService, actor: ActorContext) {
+  const logs = await service.listAuditLogs(actor);
+  return logs.map((item) => ({
     at: item.createdAt,
     actorUserId: item.actorUserId,
     action: item.action,

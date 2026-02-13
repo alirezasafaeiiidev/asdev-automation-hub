@@ -1,8 +1,8 @@
 import { parseWorkflowDsl } from '@asdev/sdk';
 import { randomUUID } from 'node:crypto';
-import { InMemoryStore } from './repositories/inMemoryStore.js';
+import { ControlPlaneStore } from './repositories/controlPlaneStore.js';
 import { SecretCipher } from './security/secretCipher.js';
-import { ActorContext, ConnectionRecord, RunRecord, StepRunRecord, WorkflowRecord } from './types.js';
+import { ActorContext, AuditLogRecord, ConnectionRecord, RunRecord, StepRunRecord, WorkflowRecord } from './types.js';
 
 function assertRole(actor: ActorContext, allowed: ActorContext['role'][]): void {
   if (!allowed.includes(actor.role)) {
@@ -11,86 +11,79 @@ function assertRole(actor: ActorContext, allowed: ActorContext['role'][]): void 
 }
 
 export class ControlPlaneService {
-  constructor(private readonly store: InMemoryStore, private readonly cipher: SecretCipher) {}
+  constructor(private readonly store: ControlPlaneStore, private readonly cipher: SecretCipher) {}
 
-  createWorkflow(actor: ActorContext, name: string): WorkflowRecord {
+  async createWorkflow(actor: ActorContext, name: string): Promise<WorkflowRecord> {
     assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR']);
-    const workflow: WorkflowRecord = {
+    const workflow = await this.store.createWorkflow({
       id: randomUUID(),
       workspaceId: actor.workspaceId,
       name,
-      isActive: false,
-      versions: [],
-    };
-    this.store.workflows.set(workflow.id, workflow);
-    this.audit(actor, 'workflow.create', 'Workflow', workflow.id);
+      createdById: actor.userId,
+    });
+    await this.audit(actor, 'workflow.create', 'Workflow', workflow.id);
     return workflow;
   }
 
-  publishWorkflowVersion(actor: ActorContext, workflowId: string, dslJson: unknown): WorkflowRecord {
+  async publishWorkflowVersion(actor: ActorContext, workflowId: string, dslJson: unknown): Promise<WorkflowRecord> {
     assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR']);
-    const workflow = this.mustWorkflow(workflowId, actor.workspaceId);
+    await this.mustWorkflow(workflowId, actor.workspaceId);
     parseWorkflowDsl(dslJson);
-    const nextVersion = workflow.versions.length + 1;
-    workflow.versions.push({ version: nextVersion, dslJson, publishedAt: new Date().toISOString() });
-    workflow.isActive = true;
-    this.audit(actor, 'workflow.publish', 'WorkflowVersion', `${workflow.id}@${nextVersion}`);
+    const workflow = await this.store.appendWorkflowVersion(
+      workflowId,
+      actor.workspaceId,
+      dslJson,
+      new Date().toISOString(),
+    );
+    if (!workflow) {
+      throw new Error('WORKFLOW_NOT_FOUND');
+    }
+    const nextVersion = workflow.versions.at(-1)?.version ?? 1;
+    await this.audit(actor, 'workflow.publish', 'WorkflowVersion', `${workflow.id}@${nextVersion}`);
     return workflow;
   }
 
-  setWorkflowActive(actor: ActorContext, workflowId: string, isActive: boolean): WorkflowRecord {
+  async setWorkflowActive(actor: ActorContext, workflowId: string, isActive: boolean): Promise<WorkflowRecord> {
     assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR']);
-    const workflow = this.mustWorkflow(workflowId, actor.workspaceId);
-    workflow.isActive = isActive;
-    this.audit(actor, 'workflow.set_active', 'Workflow', workflow.id);
+    const workflow = await this.store.setWorkflowActive(workflowId, actor.workspaceId, isActive);
+    if (!workflow) {
+      throw new Error('WORKFLOW_NOT_FOUND');
+    }
+    await this.audit(actor, 'workflow.set_active', 'Workflow', workflow.id);
     return workflow;
   }
 
-  listWorkflows(actor: ActorContext): WorkflowRecord[] {
+  listWorkflows(actor: ActorContext): Promise<WorkflowRecord[]> {
     assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR', 'VIEWER']);
-    return Array.from(this.store.workflows.values()).filter((workflow) => workflow.workspaceId === actor.workspaceId);
+    return this.store.listWorkflows(actor.workspaceId);
   }
 
   listRuns(
     actor: ActorContext,
     filter?: { workflowId?: string; status?: RunRecord['status'] },
-  ): RunRecord[] {
+  ): Promise<RunRecord[]> {
     assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR', 'VIEWER']);
-    return Array.from(this.store.runs.values()).filter((run) => {
-      if (run.workspaceId !== actor.workspaceId) {
-        return false;
-      }
-      if (filter?.workflowId && run.workflowId !== filter.workflowId) {
-        return false;
-      }
-      if (filter?.status && run.status !== filter.status) {
-        return false;
-      }
-      return true;
-    });
+    return this.store.listRuns(actor.workspaceId, filter);
   }
 
-  addRun(run: RunRecord): void {
-    this.store.runs.set(run.id, run);
+  addRun(run: RunRecord): Promise<void> {
+    return this.store.addRun(run);
   }
 
-  addStepLogs(runId: string, logs: StepRunRecord[]): void {
-    this.store.stepRuns.set(runId, logs);
-    const run = this.store.runs.get(runId);
-    if (run) {
-      run.updatedAt = new Date().toISOString();
-    }
+  addStepLogs(runId: string, workspaceId: string, logs: StepRunRecord[]): Promise<void> {
+    return this.store.replaceStepRuns(runId, workspaceId, logs);
   }
 
-  getRunTimeline(actor: ActorContext, runId: string): { run: RunRecord; steps: StepRunRecord[] } {
+  async getRunTimeline(actor: ActorContext, runId: string): Promise<{ run: RunRecord; steps: StepRunRecord[] }> {
     assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR', 'VIEWER']);
-    const run = this.mustRun(runId, actor.workspaceId);
-    return { run, steps: this.store.stepRuns.get(runId) ?? [] };
+    const run = await this.mustRun(runId, actor.workspaceId);
+    const steps = await this.store.getStepRuns(runId, actor.workspaceId);
+    return { run, steps };
   }
 
-  retryRun(actor: ActorContext, runId: string): RunRecord {
+  async retryRun(actor: ActorContext, runId: string): Promise<RunRecord> {
     assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR']);
-    const current = this.mustRun(runId, actor.workspaceId);
+    const current = await this.mustRun(runId, actor.workspaceId);
     const retried: RunRecord = {
       ...current,
       id: randomUUID(),
@@ -98,12 +91,15 @@ export class ControlPlaneService {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
-    this.store.runs.set(retried.id, retried);
-    this.audit(actor, 'run.retry', 'Run', retried.id);
+    await this.store.addRun(retried);
+    await this.audit(actor, 'run.retry', 'Run', retried.id);
     return retried;
   }
 
-  createConnection(actor: ActorContext, input: { name: string; provider: string; secret: string }): ConnectionRecord {
+  async createConnection(
+    actor: ActorContext,
+    input: { name: string; provider: string; secret: string },
+  ): Promise<ConnectionRecord> {
     assertRole(actor, ['OWNER', 'ADMIN']);
     const encryptedSecret = this.cipher.encrypt(input.secret);
     const connection: ConnectionRecord = {
@@ -113,14 +109,15 @@ export class ControlPlaneService {
       provider: input.provider,
       encryptedSecret,
     };
-    this.store.connections.set(connection.id, connection);
-    this.audit(actor, 'connection.create', 'Connection', connection.id);
+    await this.store.createConnection(connection);
+    await this.audit(actor, 'connection.create', 'Connection', connection.id);
     return connection;
   }
 
-  listConnections(actor: ActorContext): Array<ConnectionRecord & { maskedSecret: string }> {
+  async listConnections(actor: ActorContext): Promise<Array<ConnectionRecord & { maskedSecret: string }>> {
     assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR', 'VIEWER']);
-    return Array.from(this.store.connections.values())
+    const connections = await this.store.listConnections(actor.workspaceId);
+    return connections
       .filter((conn) => conn.workspaceId === actor.workspaceId)
       .map((conn) => {
         const plain = this.cipher.decrypt(conn.encryptedSecret);
@@ -128,28 +125,27 @@ export class ControlPlaneService {
       });
   }
 
-  testConnection(
+  async testConnection(
     actor: ActorContext,
     connectionId: string,
     tester?: (plainSecret: string, provider: string) => Promise<boolean>,
   ): Promise<{ ok: boolean }> {
     assertRole(actor, ['OWNER', 'ADMIN', 'OPERATOR']);
-    const connection = this.mustConnection(connectionId, actor.workspaceId);
+    const connection = await this.mustConnection(connectionId, actor.workspaceId);
     const plain = this.cipher.decrypt(connection.encryptedSecret);
     const runTest = tester ?? (async () => plain.length > 3);
-    return runTest(plain, connection.provider).then((ok) => {
-      this.audit(actor, 'connection.test', 'Connection', connectionId);
-      return { ok };
-    });
+    const ok = await runTest(plain, connection.provider);
+    await this.audit(actor, 'connection.test', 'Connection', connectionId);
+    return { ok };
   }
 
-  listAuditLogs(actor: ActorContext) {
+  listAuditLogs(actor: ActorContext): Promise<AuditLogRecord[]> {
     assertRole(actor, ['OWNER', 'ADMIN']);
-    return this.store.audits.filter((entry) => entry.workspaceId === actor.workspaceId);
+    return this.store.listAuditLogs(actor.workspaceId);
   }
 
-  private audit(actor: ActorContext, action: string, entityType: string, entityId: string): void {
-    this.store.audits.push({
+  private async audit(actor: ActorContext, action: string, entityType: string, entityId: string): Promise<void> {
+    await this.store.addAuditLog({
       id: randomUUID(),
       workspaceId: actor.workspaceId,
       actorUserId: actor.userId,
@@ -160,25 +156,25 @@ export class ControlPlaneService {
     });
   }
 
-  private mustWorkflow(id: string, workspaceId: string): WorkflowRecord {
-    const workflow = this.store.workflows.get(id);
-    if (!workflow || workflow.workspaceId !== workspaceId) {
+  private async mustWorkflow(id: string, workspaceId: string): Promise<WorkflowRecord> {
+    const workflow = await this.store.getWorkflowById(id, workspaceId);
+    if (!workflow) {
       throw new Error('WORKFLOW_NOT_FOUND');
     }
     return workflow;
   }
 
-  private mustRun(id: string, workspaceId: string): RunRecord {
-    const run = this.store.runs.get(id);
-    if (!run || run.workspaceId !== workspaceId) {
+  private async mustRun(id: string, workspaceId: string): Promise<RunRecord> {
+    const run = await this.store.getRun(id, workspaceId);
+    if (!run) {
       throw new Error('RUN_NOT_FOUND');
     }
     return run;
   }
 
-  private mustConnection(id: string, workspaceId: string): ConnectionRecord {
-    const conn = this.store.connections.get(id);
-    if (!conn || conn.workspaceId !== workspaceId) {
+  private async mustConnection(id: string, workspaceId: string): Promise<ConnectionRecord> {
+    const conn = await this.store.getConnection(id, workspaceId);
+    if (!conn) {
       throw new Error('CONNECTION_NOT_FOUND');
     }
     return conn;

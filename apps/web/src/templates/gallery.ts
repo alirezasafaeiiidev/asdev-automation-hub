@@ -105,11 +105,11 @@ export function listTemplates(): WorkflowTemplate[] {
   return templates;
 }
 
-export function installTemplate(service: ControlPlaneService, actor: ActorContext, templateId: string) {
+export async function installTemplate(service: ControlPlaneService, actor: ActorContext, templateId: string) {
   const template = templates.find((item) => item.id === templateId);
   if (!template) {
     throw new Error('TEMPLATE_NOT_FOUND');
   }
-  const workflow = service.createWorkflow(actor, template.name);
+  const workflow = await service.createWorkflow(actor, template.name);
   return service.publishWorkflowVersion(actor, workflow.id, template.dslJson);
 }

@@ -10,58 +10,59 @@ const adminActor = { userId: 'u1', workspaceId: 'w1', role: 'ADMIN' as const };
 const viewerActor = { userId: 'u2', workspaceId: 'w1', role: 'VIEWER' as const };
 
 describe('control plane service', () => {
-  it('creates workflow, publishes version, and records audit', () => {
+  it('creates workflow, publishes version, and records audit', async () => {
     const service = new ControlPlaneService(new InMemoryStore(), new SecretCipher('phase0-key'));
-    const workflow = service.createWorkflow(adminActor, 'Order flow');
-    const updated = service.publishWorkflowVersion(adminActor, workflow.id, {
+    const workflow = await service.createWorkflow(adminActor, 'Order flow');
+    const updated = await service.publishWorkflowVersion(adminActor, workflow.id, {
       name: 'Order flow',
       trigger: { type: 'core.form.submit', config: {} },
       steps: [{ id: 's1', connector: 'core.case', operation: 'create', input: {} }],
     });
 
     expect(updated.versions).toHaveLength(1);
-    expect(service.listAuditLogs(adminActor).length).toBeGreaterThan(0);
+    const logs = await service.listAuditLogs(adminActor);
+    expect(logs.length).toBeGreaterThan(0);
   });
 
-  it('encrypts and masks connection secrets', () => {
+  it('encrypts and masks connection secrets', async () => {
     const service = new ControlPlaneService(new InMemoryStore(), new SecretCipher('phase0-key'));
-    service.createConnection(adminActor, {
+    await service.createConnection(adminActor, {
       name: 'payment',
       provider: 'ir.payment',
       secret: 'super-secret-token',
     });
-    const connections = service.listConnections(adminActor);
+    const connections = await service.listConnections(adminActor);
     expect(connections[0]?.maskedSecret).toContain('***');
   });
 
-  it('enforces RBAC for sensitive actions', () => {
+  it('enforces RBAC for sensitive actions', async () => {
     const service = new ControlPlaneService(new InMemoryStore(), new SecretCipher('phase0-key'));
-    expect(() =>
+    await expect(
       service.createConnection(viewerActor, {
         name: 'sms',
         provider: 'ir.sms',
         secret: 'x',
       }),
-    ).toThrow(/RBAC_DENIED/);
+    ).rejects.toThrow(/RBAC_DENIED/);
   });
 
-  it('installs template and exposes workflows on admin screen', () => {
+  it('installs template and exposes workflows on admin screen', async () => {
     const service = new ControlPlaneService(new InMemoryStore(), new SecretCipher('phase0-key'));
     const templateId = listTemplates()[0]?.id;
     if (!templateId) {
       throw new Error('template setup failed');
     }
-    const workflow = installTemplate(service, adminActor, templateId);
+    const workflow = await installTemplate(service, adminActor, templateId);
     expect(workflow.versions).toHaveLength(1);
 
-    const workflows = getWorkflowsScreen(service, adminActor);
+    const workflows = await getWorkflowsScreen(service, adminActor);
     expect(workflows[0]?.active).toBe(true);
   });
 
-  it('lists run timeline and supports retry', () => {
+  it('lists run timeline and supports retry', async () => {
     const service = new ControlPlaneService(new InMemoryStore(), new SecretCipher('phase0-key'));
     const runId = randomUUID();
-    service.addRun({
+    await service.addRun({
       id: runId,
       workspaceId: 'w1',
       workflowId: 'wf1',
@@ -71,7 +72,7 @@ describe('control plane service', () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
-    service.addStepLogs(runId, [
+    await service.addStepLogs(runId, 'w1', [
       {
         id: randomUUID(),
         runId,
@@ -84,13 +85,13 @@ describe('control plane service', () => {
       },
     ]);
 
-    const timeline = service.getRunTimeline(adminActor, runId);
+    const timeline = await service.getRunTimeline(adminActor, runId);
     expect(timeline.steps).toHaveLength(1);
 
-    const retried = service.retryRun(adminActor, runId);
+    const retried = await service.retryRun(adminActor, runId);
     expect(retried.status).toBe('PENDING');
 
-    const runs = getRunsScreen(service, adminActor);
+    const runs = await getRunsScreen(service, adminActor);
     expect(runs.length).toBe(2);
   });
 });

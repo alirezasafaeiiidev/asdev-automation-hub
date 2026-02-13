@@ -69,6 +69,9 @@ importers:
       '@asdev/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
+      pg:
+        specifier: ^8.13.3
+        version: 8.18.0
 
   packages/config: {}
 

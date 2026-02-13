@@ -1,5 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
+import { Pool } from 'pg';
 import { InMemoryStore } from './repositories/inMemoryStore.js';
+import { PostgresStore } from './repositories/postgresStore.js';
 import { SecretCipher } from './security/secretCipher.js';
 import { ControlPlaneService } from './service.js';
 import { getConnectionsScreen, getRunsScreen, getWorkflowsScreen } from './admin/viewModels.js';
@@ -14,12 +16,33 @@ export type ServerContext = {
 export function buildServerContext(env: Record<string, string | undefined> = process.env): ServerContext {
   const secretKey = requireEnv('SECRET_KEY', env);
   const adminApiToken = requireEnv('ADMIN_API_TOKEN', env);
-  const service = new ControlPlaneService(new InMemoryStore(), new SecretCipher(secretKey));
+  const usePostgresStore = env.CONTROL_PLANE_STORE === 'postgres' || Boolean(env.DATABASE_URL);
+  const store = usePostgresStore
+    ? new PostgresStore(
+        new Pool({
+          connectionString: requireEnv('DATABASE_URL', env),
+          max: Number(env.POSTGRES_POOL_MAX ?? '10'),
+        }),
+      )
+    : new InMemoryStore();
+  const service = new ControlPlaneService(store, new SecretCipher(secretKey));
   return { service, adminApiToken };
 }
 
 export function createRequestHandler(context: ServerContext) {
   return (req: IncomingMessage, res: ServerResponse<IncomingMessage>) => {
+    void handleRequest(context, req, res).catch((error) => {
+      res.writeHead(500, { 'content-type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          error: error instanceof Error ? error.message : 'INTERNAL_SERVER_ERROR',
+        }),
+      );
+    });
+  };
+}
+
+async function handleRequest(context: ServerContext, req: IncomingMessage, res: ServerResponse<IncomingMessage>) {
     const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
     if (url.pathname === '/health') {
       res.writeHead(200, { 'content-type': 'application/json' });
@@ -43,7 +66,7 @@ export function createRequestHandler(context: ServerContext) {
 
       if (url.pathname === '/admin/workflows') {
         res.writeHead(200, { 'content-type': 'application/json' });
-        res.end(JSON.stringify(getWorkflowsScreen(context.service, authResult.actor)));
+        res.end(JSON.stringify(await getWorkflowsScreen(context.service, authResult.actor)));
         return;
       }
 
@@ -52,7 +75,7 @@ export function createRequestHandler(context: ServerContext) {
         res.writeHead(200, { 'content-type': 'application/json' });
         res.end(
           JSON.stringify(
-            getRunsScreen(context.service, authResult.actor, {
+            await getRunsScreen(context.service, authResult.actor, {
               ...(status ? { status: status as 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' } : {}),
             }),
           ),
@@ -62,14 +85,13 @@ export function createRequestHandler(context: ServerContext) {
 
       if (url.pathname === '/admin/connections') {
         res.writeHead(200, { 'content-type': 'application/json' });
-        res.end(JSON.stringify(getConnectionsScreen(context.service, authResult.actor)));
+        res.end(JSON.stringify(await getConnectionsScreen(context.service, authResult.actor)));
         return;
       }
     }
 
     res.writeHead(404, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ error: 'NOT_FOUND' }));
-  };
 }
 
 export function startServer(env: Record<string, string | undefined> = process.env) {

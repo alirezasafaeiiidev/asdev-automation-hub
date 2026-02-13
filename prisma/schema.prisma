@@ -103,6 +103,7 @@ model Run {
   startedAt          DateTime?
   finishedAt         DateTime?
   createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
   workspace          Workspace    @relation(fields: [workspaceId], references: [id])
   workflow           Workflow     @relation(fields: [workflowId], references: [id])
   workflowVersion    WorkflowVersion @relation(fields: [workflowVersionId], references: [id])
