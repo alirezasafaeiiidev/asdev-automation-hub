@@ -13,6 +13,9 @@ export function renderAdminPage(): string {
       .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
       .card { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; }
       .config { display: grid; gap: 8px; margin-bottom: 16px; background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px; }
+      .footer { margin-top: 20px; padding-top: 12px; border-top: 1px solid #e2e8f0; color: #4a5568; font-size: 12px; }
+      .footer a { color: #2b6cb0; text-decoration: none; }
+      .footer a:hover { text-decoration: underline; }
       .row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
       label { font-size: 12px; color: #4a5568; display: grid; gap: 4px; }
       input, select { border: 1px solid #cbd5e0; border-radius: 6px; padding: 6px 8px; }
@@ -48,6 +51,11 @@ export function renderAdminPage(): string {
       <article class="card"><h3>Runs</h3><pre id="runs">loading...</pre></article>
       <article class="card"><h3>Connections</h3><pre id="connections">loading...</pre></article>
     </section>
+    <footer class="footer">
+      Built by <a href="/brand">Alireza Safaei (ASDEV)</a>.
+      External profile:
+      <a href="https://alirezasafaeidev.ir" target="_blank" rel="noopener noreferrer">alirezasafaeidev.ir</a>
+    </footer>
     <script>
       const STORAGE_KEY = "asdev_admin_context";
       const saveBtn = document.getElementById("save");
@@ -122,6 +130,51 @@ export function renderAdminPage(): string {
         loadData();
       }
     </script>
+  </body>
+</html>`;
+}
+
+export function renderBrandPage(): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ASDEV Brand | asdev-automation-hub</title>
+    <meta
+      name="description"
+      content="ASDEV brand profile for asdev-automation-hub. Built by Alireza Safaei with a production-grade automation and operations focus."
+    />
+    <link rel="canonical" href="/brand" />
+    <style>
+      :root { color-scheme: light; font-family: "IBM Plex Sans", "Segoe UI", sans-serif; }
+      body { margin: 24px; background: #f8fafc; color: #0f172a; line-height: 1.65; max-width: 860px; }
+      h1, h2 { margin-bottom: 8px; }
+      section { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+      a { color: #2b6cb0; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .hint { color: #475569; font-size: 14px; margin-top: 0; }
+    </style>
+  </head>
+  <body>
+    <h1>ASDEV Brand Profile</h1>
+    <p class="hint">Production-grade automation engineering and operational reliability.</p>
+    <section>
+      <h2>Owner and Role</h2>
+      <p>Alireza Safaei leads architecture and CI/CD hardening for ASDEV products.</p>
+    </section>
+    <section>
+      <h2>Product Relationship</h2>
+      <p>asdev-automation-hub is an ASDEV product focused on local-first automation workflows and operator-grade controls.</p>
+    </section>
+    <section>
+      <h2>Contact</h2>
+      <p>
+        Main profile:
+        <a href="https://alirezasafaeidev.ir" target="_blank" rel="noopener noreferrer">alirezasafaeidev.ir</a>
+      </p>
+      <p><a href="/">Back to admin dashboard</a></p>
+    </section>
   </body>
 </html>`;
 }

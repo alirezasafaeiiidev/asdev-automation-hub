@@ -5,7 +5,7 @@ import { PostgresStore } from './repositories/postgresStore.js';
 import { SecretCipher } from './security/secretCipher.js';
 import { ControlPlaneService } from './service.js';
 import { getConnectionsScreen, getRunsScreen, getWorkflowsScreen } from './admin/viewModels.js';
-import { renderAdminPage } from './admin/page.js';
+import { renderAdminPage, renderBrandPage } from './admin/page.js';
 import { authorizeAdminRequest, requireEnv } from './auth.js';
 import { RunRecord } from './types.js';
 import { getTemplatePreflight, installTemplate, listTemplates } from './templates/gallery.js';
@@ -57,6 +57,12 @@ async function handleRequest(context: ServerContext, req: IncomingMessage, res: 
   if (url.pathname === '/') {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     res.end(renderAdminPage());
+    return;
+  }
+
+  if (url.pathname === '/brand') {
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    res.end(renderBrandPage());
     return;
   }
 

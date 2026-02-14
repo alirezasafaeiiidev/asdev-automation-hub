@@ -29,6 +29,7 @@ Health checks:
 
 Admin dashboard:
 - `http://localhost:3000/`
+- `http://localhost:3000/brand` (ASDEV brand profile)
 
 Admin API access for `/admin/*` requires:
 - `Authorization: Bearer $ADMIN_API_TOKEN` (or `x-admin-api-token`)
@@ -72,3 +73,11 @@ See: `docs/reviewer-rotation.md`
 
 ## Secrets Rotation
 See: `docs/runbooks/secrets-rotation.md`
+
+## Branding
+- Built by Alireza Safaei (ASDEV)
+- Brand profile route: `/brand`
+- Branding contract: `docs/product/branding-contract.md`
+
+## Execution Reports
+- `docs/reports/PHASE_4_STANDARDIZATION_REPORT.md`

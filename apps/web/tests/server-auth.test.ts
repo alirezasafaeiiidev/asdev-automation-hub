@@ -67,6 +67,14 @@ describe('admin server auth', () => {
     await expect(response.json()).resolves.toEqual([]);
   });
 
+  it('returns 200 for public brand page without admin token', async () => {
+    const response = await fetch(`${baseUrl}/brand`);
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    expect(html).toContain('ASDEV Brand Profile');
+    expect(html).toContain('Alireza Safaei');
+  });
+
   it('fails fast when required env vars are missing', () => {
     expect(() => buildServerContext({ ADMIN_API_TOKEN })).toThrow(/SECRET_KEY/);
     expect(() => buildServerContext({ SECRET_KEY })).toThrow(/ADMIN_API_TOKEN/);
