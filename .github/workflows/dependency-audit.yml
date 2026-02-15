@@ -1,0 +1,19 @@
+name: dependency-audit
+on:
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install
+        run: npm ci || npm install
+      - name: Audit High+
+        run: npm audit --omit=dev --audit-level=high

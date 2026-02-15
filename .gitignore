@@ -7,3 +7,7 @@ coverage
 
 .turbo
 **/.turbo
+
+.env
+.env.*
+!.env.example
